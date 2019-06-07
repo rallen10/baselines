@@ -127,18 +127,18 @@ class Model(object):
         if MPI is not None:
             sync_from_root(sess, global_variables) #pylint: disable=E1101
 
-    def train(self, lr, cliprange, obs, returns, masks, actions, values, neglogpacs, healths, states=None, advantages=None):
+    def train(self, lr, cliprange, obs, returns, masks, actions, values, neglogpacs, states=None, advantages=None):
         if advantages is None:
             # Here we calculate advantage A(s,a) = R + yV(s') - V(s)
             # Returns = R + yV(s')
             advs = returns - values
+            # Normalize the advantages, multiplying by healths to zero-health corresponds to 
+            # post-normalized zero-advantage and thus zero-policy learning
+            advs = (advs - advs.mean()) / (advs.std() + 1e-8)
         else:
             # use custom defined advantages to allow credit assignment
             advs = advantages
 
-        # Normalize the advantages, multiplying by healths to zero-health corresponds to 
-        # post-normalized zero-advantage and thus zero-policy learning
-        advs = healths*(advs - advs.mean()) / (advs.std() + 1e-8)
 
         td_map = {
             self.train_model.X : obs,
